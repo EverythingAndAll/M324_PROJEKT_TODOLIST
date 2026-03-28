@@ -39,6 +39,7 @@ public class DemoApplication {
 	}
 
 	private List<Task> tasks = new ArrayList<>();
+	private final ObjectMapper mapper = new ObjectMapper();
 
 	@CrossOrigin
 	@GetMapping("/")
@@ -58,7 +59,6 @@ public class DemoApplication {
 	@PostMapping("/tasks")
 	public String addTask(@RequestBody String taskdescription) {
 		System.out.println("API EP '/tasks': '" + taskdescription + "'");
-		ObjectMapper mapper = new ObjectMapper();
 		try {
 			Task task;
 			task = mapper.readValue(taskdescription, Task.class);
@@ -80,7 +80,6 @@ public class DemoApplication {
 	@PostMapping("/delete")
 	public String delTask(@RequestBody String taskdescription) {
 		System.out.println("API EP '/delete': '" + taskdescription + "'");
-		ObjectMapper mapper = new ObjectMapper();
 		try {
 			Task task;
 			task = mapper.readValue(taskdescription, Task.class);
@@ -97,6 +96,14 @@ public class DemoApplication {
 		} catch (JsonProcessingException e) {
 			e.printStackTrace();
 		}
+		return "redirect:/";
+	}
+
+	@CrossOrigin
+	@PostMapping("/clear")
+	public String clearTasks() {
+		System.out.println("API EP '/clear' called. Deleting all tasks.");
+		tasks.clear();
 		return "redirect:/";
 	}
 
