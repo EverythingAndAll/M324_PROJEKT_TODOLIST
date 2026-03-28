@@ -1,0 +1,46 @@
+name: CI Build Pipeline
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-frontend:
+    name: Build Frontend (React)
+    runs-on: ubuntu-latest
+    container: node:20
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        working-directory: ./frontend
+        run: npm install
+
+      - name: Build Project
+        working-directory: ./frontend
+        run: npm run build
+
+      - name: Upload Frontend Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: ./frontend/dist/
+
+  build-backend:
+    name: Build Backend (Java/Maven)
+    runs-on: ubuntu-latest
+    container: maven:3.9.6-eclipse-temurin-17
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Build with Maven
+        working-directory: ./backend
+        run: mvn clean package
+
+      - name: Upload Backend Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-build
+          path: ./backend/target/*.jar
