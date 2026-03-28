@@ -5,6 +5,8 @@
 ToDo-Liste mit React (frontend) und Spring (backend). Weitere Details sind in den
 Kommentaren vor allem in App.js zu finden.
 
+**Liebe Lernende, bitte FORKT dieses Repo für M324, und macht die Pull-Requests in euren FORKS.**
+
 ## Relevante Dateien in den Teil-Projekten (Verzeichnisse):
 
 1. diese Beschreibung
