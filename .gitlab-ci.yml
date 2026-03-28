@@ -1,7 +1,12 @@
 stages:
   - build
 
-frontend_build:
+# Workflow: Nur bei Merge Requests auf den main Branch auslösen (Äquivalent zu GitHub actions "on: pull_request")
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event' && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == 'main'
+
+build-frontend:
   stage: build
   image: node:20
   script:
@@ -12,9 +17,9 @@ frontend_build:
     name: "frontend-build"
     paths:
       - frontend/dist/
-    expire_in: 1 week
+    expire_in: 1 day
 
-backend_build:
+build-backend:
   stage: build
   image: maven:3.9.6-eclipse-temurin-17
   script:
@@ -24,4 +29,4 @@ backend_build:
     name: "backend-build"
     paths:
       - backend/target/*.jar
-    expire_in: 1 week
+    expire_in: 1 day
