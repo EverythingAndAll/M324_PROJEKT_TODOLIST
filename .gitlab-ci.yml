@@ -1,0 +1,17 @@
+stages:
+  - build
+
+build-frontend:
+  stage: build
+  image: node:20
+  script:
+    - cd frontend
+    - npm install
+    - npm run build
+
+build-backend:
+  stage: build
+  image: maven:3.9.6-eclipse-temurin-17
+  script:
+    - cd backend
+    - mvn clean package
