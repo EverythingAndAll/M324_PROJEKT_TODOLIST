@@ -37,5 +37,19 @@ Kommentaren vor allem in App.js zu finden.
 - Erweiterung der Funktionalität durch die Lernenden
 - Alternatives Backend für eine VM (WAR Konfiguration)
 - Test Umbegung mit Unit-Tests erweitern
-
 (Ausgaben für white-box debugging sind bereits auf den beiden Server vorhanden)
+
+## CI/CD Pipeline (GitHub Actions)
+
+Dieses Projekt verwendet eine automatisierte Build-Pipeline mittels GitHub Actions, um die Qualität und Build-Fähigkeit der Software zu gewährleisten.
+
+### Wie die Pipeline funktioniert:
+Die Pipeline wird **automatisch bei jedem Pull Request (bzw. Merge Request) getriggert**, der gegen den `main` Branch gerichtet ist. Die Konfiguration dazu befindet sich unter `.github/workflows/build.yml`.
+
+Sie besteht aus zwei getrennten und parallel laufenden Jobs:
+1. **Frontend Build (`build-frontend`)**: 
+   Verwendet ein Image mit vorinstalliertem Node (`node:20`). Die Pipeline wechselt in das `frontend/` Verzeichnis, installiert die Abhängigkeiten mittels `npm install` und führt den Build-Befehl `npm run build` aus. Dabei werden die fertigen HTML, JS und CSS Dateien des React-Projekts generiert.
+2. **Backend Build (`build-backend`)**: 
+   Verwendet ein Image mit vorinstalliertem Maven (`maven:3.9.6-eclipse-temurin-17`). Die Pipeline wechselt in das `backend/` Verzeichnis und baut die Java-Applikation mittels `mvn clean package`. Dadurch wird sichergestellt, dass das Backend korrekt kompiliert wird und das Deploy-Artefakt erfolgreich erstellt werden kann.
+
+Diese Pipeline garantiert, dass fehlerhafter Code, der sich nicht bauen lässt, frühzeitig im Pull Request erkannt wird.
