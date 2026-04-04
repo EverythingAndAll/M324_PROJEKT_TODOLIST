@@ -1,8 +1,13 @@
 package com.example.demo;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,15 +17,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-/**
- * Systemintegrationstests (HANOK 4.1)
- *
- * Diese Klasse enthält automatisierte Tests für alle beschriebenen
- * Benutzerinteraktionen der ToDo-Applikation.
- */
 @SpringBootTest
 @AutoConfigureMockMvc
-public class DemoApplicationTests {
+class DemoApplicationTests {
 
     @Autowired
     private MockMvc mockMvc;
@@ -29,129 +28,85 @@ public class DemoApplicationTests {
     private TaskService taskService;
 
     @BeforeEach
-    public void setup() {
-        // Vor jedem Test den Zustand bereinigen
+    void setup() {
         taskService.clearAll();
     }
 
-    // ================================================================
-    // TEST 1: Korrekte Anzeige nach leerem Speichern (Formular öffnen)
-    // ================================================================
     @Test
-    public void testGetEndpointReturnsEmptyListInitially() throws Exception {
+    void contextLoads() {
+        assertNotNull(taskService, "TaskService sollte korrekt injiziert werden.");
+    }
+
+    @Test
+    void taskListStartsEmpty() throws Exception {
         mockMvc.perform(get("/tasks"))
                 .andExpect(status().isOk())
+                .andExpect(content().contentType("application/json"))
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$").isEmpty());
     }
 
-    // ================================================================
-    // TEST 2: Überschrift korrekte Anzeige (GET /tasks)
-    // ================================================================
     @Test
-    public void testGetTasksEndpointIsAvailable() throws Exception {
+    void createTaskAddsItemToTaskList() throws Exception {
+        mockMvc.perform(post("/tasks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"taskdescription\":\"Milch kaufen\",\"priority\":\"HIGH\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.taskdescription").value("Milch kaufen"))
+                .andExpect(jsonPath("$.priority").value("HIGH"))
+                .andExpect(jsonPath("$.completed").value(false));
+
         mockMvc.perform(get("/tasks"))
                 .andExpect(status().isOk())
-                .andExpect(content().contentType("application/json"));
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].taskdescription").value("Milch kaufen"));
     }
 
-    // ================================================================
-    // TEST 3: Speichern-Button (POST /tasks) - Neuer Task wird erstellt
-    // ================================================================
     @Test
-    public void testAddTaskViaPostEndpoint() throws Exception {
+    void taskListContainsAllExpectedFieldsAfterLoad() throws Exception {
         mockMvc.perform(post("/tasks")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"taskdescription\":\"Test-Aufgabe\",\"priority\":\"HIGH\"}"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"taskdescription\":\"Bericht schreiben\",\"priority\":\"LOW\",\"dueDate\":\"2026-04-10\"}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/tasks"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.taskdescription").value("Test-Aufgabe"))
-                .andExpect(jsonPath("$.priority").value("HIGH"))
-                .andExpect(jsonPath("$.id").isNumber());
+                .andExpect(jsonPath("$[0].id").value(1))
+                .andExpect(jsonPath("$[0].taskdescription").value("Bericht schreiben"))
+                .andExpect(jsonPath("$[0].priority").value("LOW"))
+                .andExpect(jsonPath("$[0].dueDate").value("2026-04-10"))
+                .andExpect(jsonPath("$[0].creationDate").isNotEmpty())
+                .andExpect(jsonPath("$[0].completed").value(false));
     }
 
-    // ================================================================
-    // TEST 4: Fertig-Button (PUT /tasks/{id}) - Aufgabe als erledigt markieren
-    // ================================================================
     @Test
-    public void testMarkTaskAsCompleted() throws Exception {
-        // Zuerst einen Task erstellen
-        String response = mockMvc.perform(post("/tasks")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"taskdescription\":\"Erledigen-Test\",\"priority\":\"MEDIUM\"}"))
-                .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
+    void completedButtonMarksTaskAsDone() throws Exception {
+        mockMvc.perform(post("/tasks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"taskdescription\":\"Pruefung lernen\",\"priority\":\"MEDIUM\"}"))
+                .andExpect(status().isOk());
 
-        // Task-ID extrahieren
-        Long id = taskService.getAllTasks(null, null, null).get(0).getId();
-
-        // Aufgabe als erledigt markieren
-        mockMvc.perform(put("/tasks/" + id)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"taskdescription\":\"Erledigen-Test\",\"completed\":true}"))
+        mockMvc.perform(put("/tasks/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"taskdescription\":\"Pruefung lernen\",\"priority\":\"MEDIUM\",\"completed\":true}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.completed").value(true));
-    }
 
-    // ================================================================
-    // TEST 5: leeres Element hinzufügen - Task ohne Beschreibung ablehnen
-    // ================================================================
-    @Test
-    public void testAddTaskWithEmptyDescriptionShouldFail() throws Exception {
-        // POST ohne Taskdescription - der Service setzt eine ID, aber leere Beschreibung
-        // Das Frontend verhindert diesen Fall, im Backend wird der Task trotzdem gespeichert
-        // Wir prüfen, dass leere Strings vom Endpoint akzeptiert werden (Validation im Frontend)
-        mockMvc.perform(post("/tasks")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"taskdescription\":\"\",\"priority\":\"LOW\"}"))
-                .andExpect(status().isOk());
-    }
-
-    // ================================================================
-    // TEST 6: Aufgabenliste laden - GET nach POST zeigt neuen Eintrag
-    // ================================================================
-    @Test
-    public void testTaskAppearsInListAfterCreation() throws Exception {
-        mockMvc.perform(post("/tasks")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"taskdescription\":\"Neuer Eintrag\",\"priority\":\"LOW\"}"))
-                .andExpect(status().isOk());
-
-        mockMvc.perform(get("/tasks"))
+        mockMvc.perform(get("/tasks?completed=true"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].taskdescription").value("Neuer Eintrag"));
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].taskdescription").value("Pruefung lernen"));
     }
 
-    // ================================================================
-    // TEST 7: Aufgabenliste nach Laden - Format und Felder korrekt
-    // ================================================================
     @Test
-    public void testTaskFieldsAreCorrectAfterCreation() throws Exception {
+    void deleteTaskRemovesTaskFromList() throws Exception {
         mockMvc.perform(post("/tasks")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"taskdescription\":\"Felder-Test\",\"priority\":\"HIGH\",\"dueDate\":\"2025-12-31\"}"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"taskdescription\":\"Altlast entfernen\",\"priority\":\"LOW\"}"))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(get("/tasks"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].taskdescription").value("Felder-Test"))
-                .andExpect(jsonPath("$[0].priority").value("HIGH"))
-                .andExpect(jsonPath("$[0].completed").value(false))
-                .andExpect(jsonPath("$[0].creationDate").isNotEmpty());
-    }
-
-    // ================================================================
-    // TEST 8: Löschen - DELETE /tasks/{id} entfernt den Task
-    // ================================================================
-    @Test
-    public void testDeleteTaskRemovesItFromList() throws Exception {
-        mockMvc.perform(post("/tasks")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"taskdescription\":\"Zu löschen\",\"priority\":\"LOW\"}"))
-                .andExpect(status().isOk());
-
-        Long id = taskService.getAllTasks(null, null, null).get(0).getId();
-
-        mockMvc.perform(delete("/tasks/" + id))
+        mockMvc.perform(delete("/tasks/1"))
                 .andExpect(status().isOk());
 
         mockMvc.perform(get("/tasks"))
@@ -159,68 +114,87 @@ public class DemoApplicationTests {
                 .andExpect(jsonPath("$").isEmpty());
     }
 
-    // ================================================================
-    // TEST 9: Alle Aufgaben löschen - /clear leert die gesamte Liste
-    // ================================================================
     @Test
-    public void testClearAllTasksEndpoint() throws Exception {
-        // Zwei Tasks erstellen
+    void emptyDescriptionsAreRejectedWithErrorMessage() throws Exception {
         mockMvc.perform(post("/tasks")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"taskdescription\":\"Task A\",\"priority\":\"LOW\"}"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"taskdescription\":\"   \",\"priority\":\"LOW\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Die Aufgabenbeschreibung darf nicht leer sein."));
+    }
+
+    @Test
+    void duplicateDescriptionsAreRejectedWithErrorMessage() throws Exception {
+        mockMvc.perform(post("/tasks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"taskdescription\":\"Doppelt\",\"priority\":\"LOW\"}"))
                 .andExpect(status().isOk());
 
         mockMvc.perform(post("/tasks")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"taskdescription\":\"Task B\",\"priority\":\"HIGH\"}"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"taskdescription\":\"doppelt\",\"priority\":\"HIGH\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Eine Aufgabe mit derselben Beschreibung existiert bereits."));
+    }
+
+    @Test
+    void tasksCanBeFilteredByPriorityAndSearchText() throws Exception {
+        mockMvc.perform(post("/tasks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"taskdescription\":\"M324 Dokumentation\",\"priority\":\"HIGH\"}"))
                 .andExpect(status().isOk());
 
-        // Alles löschen
+        mockMvc.perform(post("/tasks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"taskdescription\":\"Einkaufen\",\"priority\":\"LOW\"}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/tasks?priority=HIGH&search=M324"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].taskdescription").value("M324 Dokumentation"));
+    }
+
+    @Test
+    void invalidUpdatesReturnNotFoundForMissingTask() throws Exception {
+        mockMvc.perform(put("/tasks/99")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"taskdescription\":\"Existiert nicht\",\"priority\":\"LOW\",\"completed\":true}"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void clearEndpointEmptiesListAndResetsIds() throws Exception {
+        mockMvc.perform(post("/tasks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"taskdescription\":\"Task A\",\"priority\":\"LOW\"}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/tasks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"taskdescription\":\"Task B\",\"priority\":\"HIGH\"}"))
+                .andExpect(status().isOk());
+
         mockMvc.perform(post("/clear"))
                 .andExpect(status().isOk());
 
-        // Liste sollte leer sein
-        mockMvc.perform(get("/"))
+        mockMvc.perform(get("/tasks"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isEmpty());
-    }
 
-    // ================================================================
-    // TEST 10: Applikation startet und Context lädt korrekt
-    // ================================================================
-    @Test
-    public void contextLoads() {
-        assertNotNull(taskService, "TaskService sollte korrekt injiziert worden sein");
-    }
-
-    // ================================================================
-    // TEST 11: Priorität MEDIUM wird als Default gesetzt
-    // ================================================================
-    @Test
-    public void testDefaultPriorityIsMedium() throws Exception {
         mockMvc.perform(post("/tasks")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"taskdescription\":\"Default Prioritaet\"}"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"taskdescription\":\"Neu nach Reset\",\"priority\":\"MEDIUM\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1));
+    }
+
+    @Test
+    void defaultPriorityFallsBackToMedium() throws Exception {
+        mockMvc.perform(post("/tasks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"taskdescription\":\"Ohne Prioritaet\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.priority").value("MEDIUM"));
     }
-
-    // ================================================================
-    // TEST 12: Task-ID ist vorhanden und eindeutig (auto-increment)
-    // ================================================================
-    @Test
-    public void testTaskIdsAreUniqueAndIncremented() throws Exception {
-        mockMvc.perform(post("/tasks")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"taskdescription\":\"Task 1\",\"priority\":\"LOW\"}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1));
-
-        mockMvc.perform(post("/tasks")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"taskdescription\":\"Task 2\",\"priority\":\"HIGH\"}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(2));
-    }
-
 }

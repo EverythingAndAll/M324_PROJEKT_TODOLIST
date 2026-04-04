@@ -5,7 +5,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @SpringBootApplication
@@ -44,21 +46,24 @@ public class DemoApplication {
 	}
 
 	@PostMapping("/tasks")
-	public ResponseEntity<Task> addTask(@RequestBody Task task) {
+	public ResponseEntity<?> addTask(@RequestBody Task task) {
 		try {
 			Task createdTask = taskService.createTask(task);
 			return ResponseEntity.ok(createdTask);
-		} catch (Exception e) {
-			e.printStackTrace();
-			return ResponseEntity.badRequest().build();
+		} catch (IllegalArgumentException e) {
+			return ResponseEntity.badRequest().body(errorResponse(e.getMessage()));
 		}
 	}
 
 	@PutMapping("/tasks/{id}")
-	public ResponseEntity<Task> updateTask(@PathVariable Long id, @RequestBody Task updatedTask) {
-		Task task = taskService.updateTask(id, updatedTask);
-		if (task != null) {
-			return ResponseEntity.ok(task);
+	public ResponseEntity<?> updateTask(@PathVariable Long id, @RequestBody Task updatedTask) {
+		try {
+			Task task = taskService.updateTask(id, updatedTask);
+			if (task != null) {
+				return ResponseEntity.ok(task);
+			}
+		} catch (IllegalArgumentException e) {
+			return ResponseEntity.badRequest().body(errorResponse(e.getMessage()));
 		}
 		return ResponseEntity.notFound().build();
 	}
@@ -99,5 +104,11 @@ public class DemoApplication {
 	@GetMapping("/api/v2/task-example")
 	public TaskV2 getTaskV2() {
 		return new TaskV2("V2 Demo", 1);
+	}
+
+	private Map<String, String> errorResponse(String message) {
+		Map<String, String> error = new LinkedHashMap<>();
+		error.put("message", message);
+		return error;
 	}
 }
