@@ -1,5 +1,6 @@
 stages:
   - build
+  - test
   - docker
 
 # Workflow: Nur bei Merge Requests auf den main Branch auslösen (Äquivalent zu GitHub actions "on: pull_request")
@@ -25,12 +26,32 @@ build-backend:
   image: maven:3.9.6-eclipse-temurin-17
   script:
     - cd backend
-    - mvn clean package
+    - mvn clean package -DskipTests
   artifacts:
     name: "backend-build"
     paths:
       - backend/target/*.jar
     expire_in: 1 day
+
+# ======= NEU: TEST STAGE =======
+test-frontend:
+  stage: test
+  image: node:20
+  dependencies:
+    - build-frontend
+  script:
+    - cd frontend
+    - npm install
+    - npm test
+
+test-backend:
+  stage: test
+  image: maven:3.9.6-eclipse-temurin-17
+  dependencies:
+    - build-backend
+  script:
+    - cd backend
+    - mvn test
 
 # ======= NEU: DOCKER STAGE =======
 docker-frontend:
