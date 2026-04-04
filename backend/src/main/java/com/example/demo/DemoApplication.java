@@ -107,4 +107,25 @@ public class DemoApplication {
 		return "redirect:/";
 	}
 
+		// ==========================================
+	// === VERSIONIERUNGS-BEISPIEL (AUFGABE) ====
+	// ==========================================
+
+	// Endpunkt Version 1: Nutzt die bestehende Klasse Task.java
+	@CrossOrigin
+	@GetMapping("/api/v1/task-example")
+	public Task getTaskV1() {
+		Task taskV1 = new Task();
+		taskV1.setTaskdescription("Das ist ein Task aus der alten V1-Schnittstelle!");
+		return taskV1;
+	}
+
+	// Endpunkt Version 2: Nutzt die neue Klasse TaskV2.java (inklusive Prioritaet)
+	@CrossOrigin
+	@GetMapping("/api/v2/task-example")
+	public TaskV2 getTaskV2() {
+		// Gibt eine V2 zurück mit der Priorität "1" (Höchste)
+		return new TaskV2("Das ist ein Task aus der neuen V2-Schnittstelle!", 1);
+	}
+
 }
