@@ -16,19 +16,19 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
- * This is a demo application that provides a RESTful API for a simple ToDo list
- * without persistence.
- * The endpoint "/" returns a list of tasks.
- * The endpoint "/tasks" adds a new unique task.
- * The endpoint "/delete" suppresses a task from the list.
- * The task description transferred from the (React) client is provided as a
- * request body in a JSON structure.
- * The data is converted to a task object using Jackson and added to the list of
- * tasks.
- * All endpoints are annotated with @CrossOrigin to enable cross-origin
- * requests.
+ * Das hier ist unsere kleine Demo-Anwendung. Im Grunde ist das unser REST-Controller fuer die ToDo-Liste.
+ * Da wir keine Datenbank angebunden haben, speichern wir die Tasks einfach zur Laufzeit in einer lokalen Liste ab.
+ * 
+ * Kurzer Ueberblick ueber unsere Endpunkte:
+ * - "/" gibt uns einfach die vollstaendige Liste der Tasks zurueck.
+ * - "/tasks" fügt einen neuen (einzigartigen) Task hinzu.
+ * - "/delete" wirft einen Task anhand seiner Beschreibung wieder aus der Liste.
+ * 
+ * Die Daten schickt uns das (React-)Frontend als JSON im Request-Body rueber.
+ * Mit Jackson wandeln wir dieses JSON dann super bequem direkt in Java-Objekte (Task.java) um.
+ * Ausserdem habe ich ueberall @CrossOrigin drangeschrieben, damit der Browser bei den Frontend-Requests nicht mit CORS-Fehlern nervt.
  *
- * @author luh
+ * @author luh (Kommentare aufgeraeumt)
  */
 @RestController
 @SpringBootApplication
@@ -45,30 +45,31 @@ public class DemoApplication {
 	@GetMapping("/")
 	public List<Task> getTasks() {
 
-		System.out.println("API EP '/' returns task-list of size " + tasks.size() + ".");
+		System.out.println("API Endpoint '/' wurde aufgerufen. Wir liefern aktuell " + tasks.size() + " Tasks zurueck.");
 		if (tasks.size() > 0) {
 			int i = 1;
 			for (Task task : tasks) {
-				System.out.println("-task " + (i++) + ":" + task.getTaskdescription());
+				System.out.println("- Task " + (i++) + ": " + task.getTaskdescription());
 			}
 		}
-		return tasks; // actual task list (internally converted to a JSON stream)
+		return tasks; // Spring Boot baut aus unserer Liste automatisch ein JSON, was total praktisch ist!
 	}
 
 	@CrossOrigin
 	@PostMapping("/tasks")
 	public String addTask(@RequestBody String taskdescription) {
-		System.out.println("API EP '/tasks': '" + taskdescription + "'");
+		System.out.println("API Endpoint '/tasks' aufgerufen mit Inhalt: '" + taskdescription + "'");
 		try {
 			Task task;
+			// Hier parsen wir den reinkommenden String in ein verwertbares Task-Objekt um
 			task = mapper.readValue(taskdescription, Task.class);
 			for (Task t : tasks) {
 				if (t.getTaskdescription().equals(task.getTaskdescription())) {
-					System.out.println(">>>task: '" + task.getTaskdescription() + "' already exists!");
-					return "redirect:/"; // duplicates will be ignored
+					System.out.println(">>> Info: Task '" + task.getTaskdescription() + "' gibt es leider schon!");
+					return "redirect:/"; // Wir ignorieren Duplikate einfach mal...
 				}
 			}
-			System.out.println("...adding task: '" + task.getTaskdescription() + "'");
+			System.out.println("... fuege neuen Task hinzu: '" + task.getTaskdescription() + "'");
 			tasks.add(task);
 		} catch (JsonProcessingException e) {
 			e.printStackTrace();
@@ -79,7 +80,7 @@ public class DemoApplication {
 	@CrossOrigin
 	@PostMapping("/delete")
 	public String delTask(@RequestBody String taskdescription) {
-		System.out.println("API EP '/delete': '" + taskdescription + "'");
+		System.out.println("API Endpoint '/delete' aufgerufen, Ziel: '" + taskdescription + "'");
 		try {
 			Task task;
 			task = mapper.readValue(taskdescription, Task.class);
@@ -87,12 +88,12 @@ public class DemoApplication {
 			while (it.hasNext()) {
 				Task t = it.next();
 				if (t.getTaskdescription().equals(task.getTaskdescription())) {
-					System.out.println("...deleting task: '" + task.getTaskdescription() + "'");
-					it.remove();
+					System.out.println("... loesche Task: '" + task.getTaskdescription() + "' erfolgreich.");
+					it.remove(); // Sicher ueber den Iterator loeschen wegen ConcurrentModificationExceptions
 					return "redirect:/";
 				}
 			}
-			System.out.println(">>>task: '" + task.getTaskdescription() + "' not found!");
+			System.out.println(">>> Ups, Task: '" + task.getTaskdescription() + "' wurde in der Liste gar nicht gefunden!");
 		} catch (JsonProcessingException e) {
 			e.printStackTrace();
 		}
@@ -102,7 +103,7 @@ public class DemoApplication {
 	@CrossOrigin
 	@PostMapping("/clear")
 	public String clearTasks() {
-		System.out.println("API EP '/clear' called. Deleting all tasks.");
+		System.out.println("API Endpoint '/clear' aufgerufen. Mache die ganze Liste platt.");
 		tasks.clear();
 		return "redirect:/";
 	}

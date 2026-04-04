@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  backend:
+    # Hier nutzen wir das GitHub Registry Image, so wie in der Aufgabe verlangt
+    image: ghcr.io/everythingandall/to-do-backend:latest
+    ports:
+      - "8080:8080"
+    # Wenn man "docker-compose up --build" lokal ausführt, baut er es frisch:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: always
+
+  frontend:
+    image: ghcr.io/everythingandall/to-do-frontend:latest
+    ports:
+      - "3000:80" # Das Frontend läuft lokal dann auf http://localhost:3000
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: always

@@ -44,3 +44,69 @@ jobs:
         with:
           name: backend-build
           path: ./backend/target/*.jar
+
+  docker-frontend:
+    name: Build & Push Frontend Docker Image
+    needs: build-frontend
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Download Frontend Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: ./frontend/dist/
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Transform Repo Name
+        run: echo "REPO_NAME=$(echo ${{ github.repository }} | awk '{print tolower($0)}')" >> $GITHUB_ENV
+
+      - name: Build and push Docker image
+        working-directory: ./frontend
+        run: |
+          docker build -t ghcr.io/${{ env.REPO_NAME }}-frontend:latest .
+          docker push ghcr.io/${{ env.REPO_NAME }}-frontend:latest
+
+  docker-backend:
+    name: Build & Push Backend Docker Image
+    needs: build-backend
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Download Backend Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-build
+          path: ./backend/target/
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Transform Repo Name
+        run: echo "REPO_NAME=$(echo ${{ github.repository }} | awk '{print tolower($0)}')" >> $GITHUB_ENV
+
+      - name: Build and push Docker image
+        working-directory: ./backend
+        run: |
+          docker build -t ghcr.io/${{ env.REPO_NAME }}-backend:latest .
+          docker push ghcr.io/${{ env.REPO_NAME }}-backend:latest
