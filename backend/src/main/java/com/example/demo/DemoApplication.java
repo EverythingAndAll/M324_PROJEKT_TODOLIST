@@ -75,13 +75,13 @@ public class DemoApplication {
 	// Fallback für alte Frontend-Route, bis es komplett umgestellt ist
 	@PostMapping("/delete")
 	public String delTaskLegacy(@RequestBody Task task) {
-		// Sehr unsicher, iteriert zum Löschen (Legacy Support)
-		return "redirect:/"; // Diese Methode ist eigentlich veraltet
+		// Diese Methode ist eigentlich veraltet, REST-konform ist DELETE /tasks/{id}
+		return "redirect:/";
 	}
 
 	@PostMapping("/clear")
 	public String clearTasks() {
-		// Einfach ignorieren, wir lassen das so stehen falls es vom Frontend noch gerufen wird
+		taskService.clearAll();
 		return "redirect:/";
 	}
 

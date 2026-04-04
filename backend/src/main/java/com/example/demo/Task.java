@@ -1,7 +1,5 @@
 package com.example.demo;
 
-import java.util.UUID;
-
 /** 
  * Das ist unser erweitertes Task-Modell fuer die ToDo-Liste.
  * Beinhaltet ID, Beschreibung, Termine, Priorität und Abschluss-Status.

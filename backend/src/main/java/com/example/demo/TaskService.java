@@ -64,4 +64,8 @@ public class TaskService {
         }
         return false;
     }
+
+    public void clearAll() {
+        tasks.clear();
+    }
 }
